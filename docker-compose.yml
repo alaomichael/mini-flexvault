@@ -64,8 +64,6 @@
 #   postgres_data:
 
 
-version: '3.8'
-
 services:
   postgres:
     image: postgres:14
@@ -134,7 +132,7 @@ services:
   app:
     build: .
     ports:
-      - '8000:8000'  # Change this if your app uses a different port
+      - '3001:3001'  # Change this if your app uses a different port
     depends_on:
       - postgres
       - redis
