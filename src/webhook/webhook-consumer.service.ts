@@ -3,6 +3,8 @@ import { Kafka, Consumer } from 'kafkajs';
 import { Pool } from 'pg';
 import { Counter, Histogram } from 'prom-client';
 import { RedisService } from '../redis/redis.service';
+import { ConfigService } from '@nestjs/config';
+
 
 @Injectable()
 export class WebhookConsumerService implements OnModuleInit {
@@ -10,6 +12,7 @@ export class WebhookConsumerService implements OnModuleInit {
   private readonly consumer: Consumer;
   private readonly pgPool: Pool;
   private readonly redis: RedisService;
+  private readonly configService: ConfigService
   private readonly payoutSuccess = new Counter({
     name: 'payout_success_total',
     help: 'Total successful payouts',
@@ -21,22 +24,29 @@ export class WebhookConsumerService implements OnModuleInit {
     buckets: [0.1, 0.5, 1, 2, 5],
   });
 
-  constructor(redisService: RedisService) {
-    this.kafka = new Kafka({
-      clientId: 'flexvault-consumer',
-      brokers: ['localhost:9092'],
-    });
-    // this.consumer = this.kafka.consumer({ groupId: 'webhook-group' });
-    this.consumer = this.kafka.consumer({ groupId: 'webhook-group-test' });
-    this.pgPool = new Pool({
-      user: 'postgres',
-      host: 'postgres',
-      database: 'flexvault',
-      password: 'password',
-      port: 5432,
-    });
-    this.redis = redisService;
-  }
+constructor(
+  redisService: RedisService,
+  configService: ConfigService
+) {
+  this.configService = configService;  // ✅ fix this line
+  this.redis = redisService;
+
+  this.kafka = new Kafka({
+    clientId: 'flexvault-consumer',
+    brokers: ['kafka:9092'],
+  });
+
+  this.consumer = this.kafka.consumer({ groupId: 'webhook-group-test' });
+
+  this.pgPool = new Pool({
+    user: this.configService.get('POSTGRES_USER') || 'postgres',
+    host: this.configService.get('POSTGRES_HOST') || 'postgres',
+    database: this.configService.get('POSTGRES_DB') || 'flexvault',
+    password: this.configService.get('POSTGRES_PASSWORD') || 'password',
+    port: Number(this.configService.get('POSTGRES_PORT')) || 5432,  // 👈 cast to number
+  });
+}
+
 
   async onModuleInit() {
     console.log('Connecting Kafka consumer...');

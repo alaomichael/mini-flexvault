@@ -67,10 +67,11 @@
 services:
   postgres:
     image: postgres:14
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: flexvault
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - '5432:5432'
     volumes:
@@ -78,6 +79,7 @@ services:
 
   redis:
     image: redis:6
+    restart: always
     ports:
       - '6379:6379'
 
@@ -86,6 +88,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -132,7 +136,9 @@ services:
   app:
     build: .
     ports:
-      - '3001:3001'  # Change this if your app uses a different port
+      - '${PORT}:3001'  # Change this if your app uses a different port
+    env_file:
+      - .env
     depends_on:
       - postgres
       - redis

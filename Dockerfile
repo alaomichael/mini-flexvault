@@ -1,12 +1,17 @@
 # 1. Base image
-FROM node:18-alpine as builder
+FROM node:20-alpine as builder
 
 # 2. Set working directory
 WORKDIR /app
 
 # 3. Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install
+# RUN npm install
+RUN npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
+ && npm install
+
 
 # 4. Copy source files
 COPY . .
@@ -15,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # --- Production Stage ---
-FROM node:18-alpine
+FROM node:20-alpine as runner
 
 WORKDIR /app
 
