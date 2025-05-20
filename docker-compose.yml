@@ -10,12 +10,24 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   redis:
     image: redis:6
     restart: always
     ports:
       - '6379:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -39,6 +51,11 @@ services:
       - '9092:9092'
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -60,6 +77,12 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   prometheus:
     image: prom/prometheus
@@ -81,16 +104,21 @@ services:
 
   app:
     build: .
-    command: npm run start:dev
     ports:
       - '${PORT}:3001'  # Change this if your app uses a different port
     env_file:
       - .env
     depends_on:
-      - postgres
-      - redis
-      - kafka
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    # command: ["wait-for-it", "postgres:5432", "--", "wait-for-it", "redis:6379", "--", "npm", "run", "start:dev"]
+    command: ["entrypoint.sh"]
     environment:
       DB_HOST: postgres
       DB_PORT: 5432

@@ -16,6 +16,13 @@ RUN npm config set fetch-retries 5 \
 # 4. Copy source files
 COPY . .
 
+# COPY wait-for-it.sh /usr/local/bin/wait-for-it
+# RUN chmod +x /usr/local/bin/wait-for-it
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+
 # 5. Build the app
 RUN npm run build
 
@@ -34,3 +41,4 @@ EXPOSE 3001
 
 # Start the app
 CMD ["node", "dist/main"]
+
