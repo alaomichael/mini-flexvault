@@ -39,11 +39,11 @@ constructor(
   this.consumer = this.kafka.consumer({ groupId: 'webhook-group-test' });
 
   this.pgPool = new Pool({
-    user: this.configService.get('POSTGRES_USER') || 'postgres',
-    host: this.configService.get('POSTGRES_HOST') || 'postgres',
-    database: this.configService.get('POSTGRES_DB') || 'flexvault',
-    password: this.configService.get('POSTGRES_PASSWORD') || 'password',
-    port: Number(this.configService.get('POSTGRES_PORT')) || 5432,  // 👈 cast to number
+    user: this.configService.get<string>('POSTGRES_USER') || 'postgres',
+    host: this.configService.get<string>('POSTGRES_HOST') || 'postgres',
+    database: this.configService.get<string>('POSTGRES_DB') || 'flexvault',
+    password: this.configService.get<string>('POSTGRES_PASSWORD') || 'password',
+    port: Number(this.configService.get<string>('POSTGRES_PORT')) || 5432,  // 👈 cast to number
   });
 }
 
@@ -56,7 +56,7 @@ constructor(
     console.log('Subscribed. Starting consumer...');
     
     await this.consumer.run({
-      eachMessage: async ({ message }) => {
+      eachMessage: async ({  topic, partition, message }) => {
         console.log(`Received message: ${message.value?.toString()}`);
         const startTime = Date.now();
         if (!message.value) {
@@ -100,6 +100,7 @@ constructor(
           console.log(`[PAYOUT_SUCCESS] user_id=${user_id}, amount=${amount}, provider=${provider}`);
           this.payoutSuccess.inc({ provider });
           this.payoutLatency.observe((Date.now() - startTime) / 1000);
+          
         } catch (error) {
           console.error(`[PAYOUT_FAILURE] user_id=${user_id}, provider_transaction_id=${provider_transaction_id}, error=${error.message}`);
           throw error;
